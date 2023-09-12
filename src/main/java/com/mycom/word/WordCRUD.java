@@ -1,21 +1,86 @@
 package com.mycom.word;
 
 import java.io.*;
+import java.sql.*;
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Scanner;
 
 public class WordCRUD implements ICRUD{
+    final String WORD_SELECTALL = "select * from dictionary";
+    final String WORD_SELECT = "select * from dictionary where word like ? ";
+
+    final String WORD_INSERT = "insert into dictionary (level, word, meaning, regdate) "
+            + "values (?,?,?,?) ";
+    final String WORD_UPDATE = "update into dictionary set meaning=? where id=? ";
+    final String WORD_DELETE = "delete from dictionary where id=? ";
+
     ArrayList<Word> list;
     Scanner s;
     final String fname = "Dictionary.txt";
+    Connection conn;
 
     WordCRUD(Scanner s){
         list = new ArrayList<>();
         this.s = s;
+        conn = DBConnection.getConnection();
+    }
+
+    public void loadData(String keyword){
+        list.clear();
+        try {
+            PreparedStatement stmt = conn.prepareStatement(WORD_SELECTALL);
+            ResultSet rs;
+
+            if(keyword.equals("")){
+                stmt = conn.prepareStatement(WORD_SELECTALL);
+                rs = stmt.executeQuery();
+            } else {
+                stmt = conn.prepareStatement(WORD_SELECT);
+                stmt.setString(1, "%" + keyword + "%");
+                rs = stmt.executeQuery();
+            }
+            while(true){
+                if(!rs.next()) break;
+                int id = rs.getInt("id");
+                int level = rs.getInt("level");
+                String word = rs.getString("word");
+                String meaning = rs.getString("meaning");
+                list.add(new Word(id, level, word, meaning));
+            }
+            rs.close();
+            stmt.close();
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    public String getCurrentDate(){
+        LocalDate now = LocalDate.now();
+        DateTimeFormatter f = DateTimeFormatter.ofPattern("yyy-MM-dd");
+        return f.format(now);
     }
 
     @Override
-    public Object add() {
+    public int add(Word one) {
+        int retval = 0;
+        PreparedStatement pstmt;
+        try {
+            pstmt = conn.prepareStatement(WORD_INSERT);
+            pstmt.setInt(1, one.getLevel());
+            pstmt.setString(2, one.getWord());
+            pstmt.setString(3, one.getMeaning());
+            pstmt.setString(4, getCurrentDate());
+            retval = pstmt.executeUpdate();
+            pstmt.close();
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        }
+        return 0;
+    }
+
+    public void addItem() {
         System.out.print("=> 난이도(1,2,3) & 새 단어 입력 : ");
         int level = s.nextInt();
         String word = s.nextLine();
@@ -23,34 +88,15 @@ public class WordCRUD implements ICRUD{
         System.out.print("뜻 입력 : ");
         String meaning = s.nextLine();
 
-        return new Word(0, level, word, meaning);
+        Word one = new Word(0, level, word, meaning);
+        int retval = add(one);
+
+        if(retval > 0) System.out.println("새 단어가 단어장에 추가되었습니다. ");
+        else System.out.println("새 단어 추가중 에러가 발생되었습니다. ");
     }
 
-    public void addItem() {
-        Word one = (Word)add();
-        list.add(one);
-        System.out.println("새 단어가 단어장에 추가되었습니다. ");
-    }
-
-    @Override
-    public int update(Object obj) {
-        // TODO Auto-generated method stub
-        return 0;
-    }
-
-    @Override
-    public int delete(Object obj) {
-        // TODO Auto-generated method stub
-        return 0;
-    }
-
-    @Override
-    public void selectOne(int id) {
-        // TODO Auto-generated method stub
-
-    }
-
-    public void listAll() {
+    public void listAll(String keyword) {
+        loadData(keyword);
         System.out.println("----------------------");
         for(int i = 0; i < list.size(); i++) {
             System.out.print(i+1 + " ");
@@ -59,6 +105,7 @@ public class WordCRUD implements ICRUD{
         System.out.println("----------------------");
     }
 
+    /*
     public ArrayList<Integer> listAll(String keyword) {
 
         ArrayList<Integer> idlist = new ArrayList<>();
@@ -75,6 +122,7 @@ public class WordCRUD implements ICRUD{
         System.out.println("----------------------");
         return idlist;
     }
+    */
 
     public void listAll(int level){
 
@@ -90,21 +138,42 @@ public class WordCRUD implements ICRUD{
         System.out.println("----------------------");
     }
 
+    @Override
+    public int update(Word one) {
+        int retval = 0;
+        PreparedStatement pstmt;
+        try {
+            pstmt = conn.prepareStatement(WORD_UPDATE);
+            pstmt.setString(1, one.getMeaning());
+            pstmt.setInt(2, one.getId());
+            retval = pstmt.executeUpdate();
+            pstmt.close();
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        }
+        return 0;
+    }
+
     public void updateItem(){
         System.out.print("=> 수정할 단어 검색 : ");
         String keyword = s.next();
-        ArrayList<Integer> idlist = this.listAll(keyword);
+        listAll(keyword);
+
         System.out.print("=> 수정할 번호 선택 : ");
         int id = s.nextInt();
         s.nextLine();
 
         System.out.print("=> 뜻 입력 : ");
         String meaning = s.nextLine();
-        Word word = list.get(idlist.get(id-1));
-        word.setMeaning(meaning);
-        System.out.println("단어가 수정되었습니다. ");
+
+        int val = update(new Word(list.get(id-1).getId(), 0, "", meaning));
+        if(val > 0)
+            System.out.println("단어가 수정되었습니다. ");
+        else
+            System.out.println("[수정] 에러발생 !!!");
     }
 
+    /*
     public void deleteItem(){
         System.out.print("=> 삭제할 단어 검색 : ");
         String keyword = s.next();
@@ -121,6 +190,7 @@ public class WordCRUD implements ICRUD{
         } else
             System.out.println("취소되었습니다. ");
     }
+    */
 
     /*
     public void loadFile(){
@@ -174,5 +244,4 @@ public class WordCRUD implements ICRUD{
         String keyword = s.next();
         listAll(keyword);
     }
-
 }
