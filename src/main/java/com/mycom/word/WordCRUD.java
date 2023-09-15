@@ -13,7 +13,7 @@ public class WordCRUD implements ICRUD{
 
     final String WORD_INSERT = "insert into dictionary (level, word, meaning, regdate) "
             + "values (?,?,?,?) ";
-    final String WORD_UPDATE = "update into dictionary set meaning=? where id=? ";
+    final String WORD_UPDATE = "update dictionary set meaning=? where id=? ";
     final String WORD_DELETE = "delete from dictionary where id=? ";
 
     ArrayList<Word> list;
@@ -105,25 +105,6 @@ public class WordCRUD implements ICRUD{
         System.out.println("----------------------");
     }
 
-    /*
-    public ArrayList<Integer> listAll(String keyword) {
-
-        ArrayList<Integer> idlist = new ArrayList<>();
-        int j = 0;
-        System.out.println("----------------------");
-        for(int i = 0; i < list.size(); i++) {
-            String word = list.get(i).getWord();
-            if(!word.contains(keyword)) continue;
-            System.out.print(j+1 + " ");
-            System.out.println(list.get(i).toString());
-            idlist.add(i);
-            j++;
-        }
-        System.out.println("----------------------");
-        return idlist;
-    }
-    */
-
     public void listAll(int level){
 
         int j = 0;
@@ -151,7 +132,7 @@ public class WordCRUD implements ICRUD{
         } catch (SQLException e) {
             throw new RuntimeException(e);
         }
-        return 0;
+        return retval;
     }
 
     public void updateItem(){
@@ -173,11 +154,25 @@ public class WordCRUD implements ICRUD{
             System.out.println("[수정] 에러발생 !!!");
     }
 
-    /*
+    @Override
+    public int delete(Word one) {
+        int retval = 0;
+        PreparedStatement pstmt;
+        try {
+            pstmt = conn.prepareStatement(WORD_DELETE);
+            pstmt.setInt(1, one.getId());
+            retval = pstmt.executeUpdate();
+            pstmt.close();
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        }
+        return retval;
+    }
+
     public void deleteItem(){
         System.out.print("=> 삭제할 단어 검색 : ");
         String keyword = s.next();
-        ArrayList<Integer> idlist = this.listAll(keyword);
+        listAll(keyword);
         System.out.print("=> 삭제할 번호 선택 : ");
         int id = s.nextInt();
         s.nextLine();
@@ -185,39 +180,15 @@ public class WordCRUD implements ICRUD{
         System.out.print("=> 정말로 삭제하실래요?(Y/n) ");
         String ans = s.next();
         if(ans.equalsIgnoreCase("y")){
-            list.remove((int)idlist.get(id-1));
-            System.out.println("단어가 삭제되었습니다. ");
+            int val = delete(new Word(list.get(id-1).getId(), 0, "", ""));
+            if(val > 0) {
+                //list.remove((int) idlist.get(id - 1));
+                System.out.println("단어가 삭제되었습니다. ");
+            } else
+                System.out.println("[삭제] 에러발생 !!!");
         } else
             System.out.println("취소되었습니다. ");
     }
-    */
-
-    /*
-    public void loadFile(){
-        try {
-            BufferedReader br = new BufferedReader(new FileReader(fname));
-            String line;
-            int count = 0;
-
-            while(true){
-                line = br.readLine();
-                if(line == null) break;
-
-                String data[] = line.split("\\|");
-                int level = Integer.parseInt(data[0]);
-                String word = data[1];
-                String meaning = data[2];
-                list.add(new Word(0, level, word, meaning));
-                count++;
-            }
-            br.close();
-            System.out.println("==> " + count + "개 로딩 완료!!!");
-
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
-    }
-    */
 
     public void saveFile(){
         try {
