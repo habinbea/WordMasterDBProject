@@ -4,3 +4,5 @@
 1| pole|기둥, 장대
 1| formerly|이전에, 예전에
 1| transfer|옮기다, 이동하다
+1| basketball|농구, 농구공
+3| phenomenon|현상

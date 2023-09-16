@@ -77,7 +77,7 @@ public class WordCRUD implements ICRUD{
         } catch (SQLException e) {
             throw new RuntimeException(e);
         }
-        return 0;
+        return retval;
     }
 
     public void addItem() {
@@ -106,7 +106,6 @@ public class WordCRUD implements ICRUD{
     }
 
     public void listAll(int level){
-
         int j = 0;
         System.out.println("----------------------");
         for(int i = 0; i < list.size(); i++) {
